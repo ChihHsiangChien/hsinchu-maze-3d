@@ -12,8 +12,9 @@ export class Player {
         this.isMobile = false;
         this.walkSpeed = 55.0; 
 
-        this.camDistance = 15.0; 
-        this.fixedPitch = 0.6;  
+        // --- 修正：調整相機參數，使主角位於畫面下 1/3 ---
+        this.camDistance = 18.0; 
+        this.fixedPitch = 0.8; // 增加俯角，讓主角在視覺上下沉
         
         this.compassPivot = document.getElementById('compass-pivot');
         
@@ -88,7 +89,6 @@ export class Player {
 
         const currentRoad = this.physics.getCurrentRoad(this.mesh.position.x, this.mesh.position.z);
         if (currentRoad) {
-            // 實時將路名推送至頂部 HUD
             this.hud.updateRoadName(currentRoad.name);
         } else {
             this.hud.updateRoadName(null);
@@ -109,11 +109,17 @@ export class Player {
             if (this.physics.getCurrentRoad(this.mesh.position.x, nextZ)) this.mesh.position.z = nextZ;
         }
 
+        // --- 視覺優化：主角位置下沉到畫面 1/3 ---
         const h = Math.sin(this.fixedPitch) * this.camDistance;
         const d = Math.cos(this.fixedPitch) * this.camDistance;
         const offset = new THREE.Vector3(0, h + 2, d).applyQuaternion(this.mesh.quaternion);
         this.camera.position.copy(this.mesh.position).add(offset);
-        this.camera.lookAt(this.mesh.position.x, 1.2, this.mesh.position.z);
+        
+        // 關鍵：將相機焦點稍微往主角前方移一點，這會讓主角在畫面上看起來更靠下
+        const lookOffset = new THREE.Vector3(0, 0, -5).applyQuaternion(this.mesh.quaternion);
+        const lookTarget = this.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)).add(lookOffset);
+        this.camera.lookAt(lookTarget);
+        
         this.camera.up.set(0, 1, 0);
     }
 }

@@ -13,10 +13,21 @@ function geoToLocal(lon, lat) {
     return [x, y];
 }
 
-async function fetchHsinchuData() {
-    console.log("🚀 Fetching Clean Data (No placeholder names)...");
-    const bbox = "24.760,120.920,24.840,121.020";
-    const query = `[out:json][timeout:180];(way["highway"](${bbox});way["building"](${bbox}););out body;>;out skel qt;`;
+async function fetchHsinchuCyberData() {
+    console.log("🚀 Fetching Cyber-Forest Data...");
+    const bbox = "24.790,120.955,24.815,120.985";
+    
+    const query = `
+        [out:json][timeout:90];
+        (
+          way["highway"](${bbox});
+          way["building"](${bbox});
+          node["natural"="tree"](${bbox});
+        );
+        out body;
+        >;
+        out skel qt;
+    `;
 
     try {
         const response = await axios.post('https://overpass-api.de/api/interpreter', query);
@@ -26,38 +37,40 @@ async function fetchHsinchuData() {
 
         const roads = [];
         const buildings = [];
+        const trees = [];
 
-        elements.filter(el => el.type === 'way').forEach(way => {
-            if (!way.nodes || way.nodes.length < 2) return;
-            const pts = way.nodes.filter(id => nodes[id]).map(id => nodes[id]);
-            if (pts.length < 2) return;
+        elements.forEach(el => {
+            if (el.type === 'node' && el.tags && el.tags.natural === 'tree') {
+                trees.push({ pos: geoToLocal(el.lon, el.lat) });
+            } else if (el.type === 'way') {
+                if (!el.nodes || el.nodes.length < 2) return;
+                const pts = el.nodes.filter(id => nodes[id]).map(id => nodes[id]);
+                if (pts.length < 2) return;
 
-            if (way.tags && way.tags.highway) {
-                if (['motorway', 'trunk'].includes(way.tags.highway)) return;
-                
-                // --- 修正：如果沒有路名就保持 null ---
-                const roadName = way.tags.name || null;
-                
-                const line = turf.lineString(pts);
-                const buffer = turf.buffer(line, 10, { units: 'meters' });
-                const poly = buffer.geometry.coordinates[0].map(p => geoToLocal(p[0], p[1]));
-                roads.push({
-                    name: roadName,
-                    poly: poly,
-                    center: geoToLocal(pts[0][0], pts[0][1])
-                });
-            } else if (way.tags && way.tags.building) {
-                buildings.push({
-                    height: 0.5,
-                    coords: pts.map(p => geoToLocal(p[0], p[1]))
-                });
+                if (el.tags && el.tags.highway) {
+                    if (['motorway', 'trunk'].includes(el.tags.highway)) return;
+                    const line = turf.lineString(pts);
+                    const buffer = turf.buffer(line, 10, { units: 'meters' });
+                    const poly = buffer.geometry.coordinates[0].map(p => geoToLocal(p[0], p[1]));
+                    roads.push({
+                        name: el.tags.name || null,
+                        poly: poly,
+                        center: geoToLocal(pts[0][0], pts[0][1])
+                    });
+                } else if (el.tags && el.tags.building) {
+                    buildings.push({
+                        height: parseFloat(el.tags.height || 10),
+                        coords: pts.map(p => geoToLocal(p[0], p[1]))
+                    });
+                }
             }
         });
 
         fs.writeFileSync('public/data/roads.json', JSON.stringify(roads));
         fs.writeFileSync('public/data/buildings.json', JSON.stringify(buildings));
-        console.log("✅ Clean Data Saved.");
+        fs.writeFileSync('public/data/trees.json', JSON.stringify(trees));
+        console.log(`✅ Cyber Data Ready! Trees: ${trees.length}`);
     } catch (e) { console.error(e); }
 }
 
-fetchHsinchuData();
+fetchHsinchuCyberData();

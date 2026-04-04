@@ -13,7 +13,7 @@ async function init() {
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
     const hud = new HUD();
@@ -21,34 +21,37 @@ async function init() {
     const env = new Environment(scene);
     const physics = new Physics();
 
-    console.log("Loading Map Data...");
-    const roadsData = await loader.loadRoads('data/roads.json');
-    const buildingsData = await loader.loadBuildings('data/buildings.json');
-    const landmarksData = await loader.loadLandmarks('data/landmarks.json');
+    console.log("🚀 Loading World...");
+    
+    const [roadsData, buildingsData, landmarksData] = await Promise.all([
+        loader.loadRoads('data/roads.json'),
+        loader.loadBuildings('data/buildings.json'),
+        loader.loadLandmarks('data/landmarks.json')
+    ]);
 
     physics.processRoads(roadsData);
     env.createRoads(roadsData);
     env.createBuildings(buildingsData);
-
-    const player = new Player(scene, camera, renderer.domElement, physics, hud);
     
-    // --- 定位起點：光華指定座標 ---
+    // 定位光華起點
     const targetLonLat = [120.974073, 24.817853];
     const ORIGIN = [120.971, 24.801];
     const latRad = ORIGIN[1] * Math.PI / 180;
-    
     const spawnX = (targetLonLat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
     const spawnZ = -(targetLonLat[1] - ORIGIN[1]) * 111111; 
-    
-    player.mesh.position.set(spawnX, 0, spawnZ);
-    console.log(`🚀 Spawned at Guanghua: ${spawnX}, ${spawnZ}`);
 
-    // --- 大規模建置地標標牌 ---
+    // 生成密集植被
+    env.generateRandomTrees(physics, 1500, spawnX, spawnZ);
+
+    // --- 關鍵修正：恢復地標標牌渲染 ---
     landmarksData.forEach(data => {
         const x = (data.lonlat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
         const z = -(data.lonlat[1] - ORIGIN[1]) * 111111;
         createFixedLandmark(scene, data.name, x, z, data.height || 5, data.rotation || 0, data.color || "#ffc800");
     });
+
+    const player = new Player(scene, camera, renderer.domElement, physics, hud);
+    player.mesh.position.set(spawnX, 0, spawnZ);
 
     const clock = new THREE.Clock();
     function animate() {
@@ -67,43 +70,23 @@ async function init() {
 }
 
 /**
- * 建立固定朝向的 3D 路牌 Mesh
+ * 建立固定朝向的 3D 路牌
  */
 function createFixedLandmark(scene, text, x, z, h, rotation, bgColor) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = 512;
-    canvas.height = 128;
-    
-    // 背景
-    ctx.fillStyle = bgColor;
-    ctx.roundRect(0, 0, 512, 128, 20);
-    ctx.fill();
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 8;
-    ctx.stroke();
-    
-    // 文字
-    ctx.fillStyle = 'black';
-    ctx.font = 'bold 64px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    canvas.width = 512; canvas.height = 128;
+    ctx.fillStyle = bgColor; ctx.roundRect(0, 0, 512, 128, 20); ctx.fill();
+    ctx.strokeStyle = 'black'; ctx.lineWidth = 8; ctx.stroke();
+    ctx.fillStyle = 'black'; ctx.font = 'bold 64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(text, 256, 64);
     
     const texture = new THREE.CanvasTexture(canvas);
-    // 使用 Mesh 而非 Sprite 以獲得固定世界朝向
     const geometry = new THREE.PlaneGeometry(12, 3);
-    const material = new THREE.MeshBasicMaterial({ 
-        map: texture, 
-        transparent: true,
-        side: THREE.DoubleSide // 雙面可見
-    });
-    
+    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
     const sign = new THREE.Mesh(geometry, material);
     sign.position.set(x, h, z);
-    // 設定路牌的旋轉角度 (繞 Y 軸)
     sign.rotation.y = rotation;
-    
     scene.add(sign);
 }
 
