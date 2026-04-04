@@ -22,8 +22,8 @@ async function init() {
     const physics = new Physics();
 
     console.log("Loading Map Data...");
-    const roadsData = await loader.loadRoads('/data/roads.json');
-    const buildingsData = await loader.loadBuildings('/data/buildings.json');
+    const roadsData = await loader.loadRoads('data/roads.json');
+    const buildingsData = await loader.loadBuildings('data/buildings.json');
 
     physics.processRoads(roadsData);
     env.createRoads(roadsData);
