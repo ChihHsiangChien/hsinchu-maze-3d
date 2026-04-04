@@ -1,0 +1,58 @@
+[
+    {
+        "name": "光華迷宮",
+        "lonlat": [120.974073, 24.817853],
+        "rotation": 0,
+        "color": "#ffc800",
+        "height": 5.0
+    },
+    {
+        "name": "新竹驛",
+        "lonlat": [120.971, 24.801],
+        "rotation": 1.57,
+        "color": "#ff4444",
+        "height": 6.0
+    },
+    {
+        "name": "巨大城堡",
+        "lonlat": [120.975, 24.809],
+        "rotation": 0.8,
+        "color": "#4444ff",
+        "height": 8.0
+    },
+    {
+        "name": "迎曦古門",
+        "lonlat": [120.971, 24.804],
+        "rotation": 0,
+        "color": "#ffffff",
+        "height": 5.0
+    },
+    {
+        "name": "幽冥法庭",
+        "lonlat": [120.966, 24.805],
+        "rotation": 1.57,
+        "color": "#aa00ff",
+        "height": 5.0
+    },
+    {
+        "name": "翡翠森之國",
+        "lonlat": [120.981, 24.806],
+        "rotation": -0.5,
+        "color": "#00ff00",
+        "height": 6.0
+    },
+    {
+        "name": "州廳白宮",
+        "lonlat": [120.968, 24.807],
+        "rotation": 0,
+        "color": "#eeeeee",
+        "height": 7.0
+    },
+    {
+        "name": "琉璃幻境",
+        "lonlat": [120.979, 24.807],
+        "rotation": 1.2,
+        "color": "#00ffff",
+        "height": 5.0
+    }
+]

@@ -24,6 +24,7 @@ async function init() {
     console.log("Loading Map Data...");
     const roadsData = await loader.loadRoads('data/roads.json');
     const buildingsData = await loader.loadBuildings('data/buildings.json');
+    const landmarksData = await loader.loadLandmarks('data/landmarks.json');
 
     physics.processRoads(roadsData);
     env.createRoads(roadsData);
@@ -31,17 +32,23 @@ async function init() {
 
     const player = new Player(scene, camera, renderer.domElement, physics, hud);
     
-    // --- 關鍵修正：精確定位在新竹站前廣場 ---
-    // 以火車站 [120.971, 24.801] 為原點，站前廣場座標約為 [120.9717, 24.8023]
-    const stationSquareLonLat = [120.9717, 24.8023];
+    // --- 定位起點：光華指定座標 ---
+    const targetLonLat = [120.974073, 24.817853];
     const ORIGIN = [120.971, 24.801];
-    
     const latRad = ORIGIN[1] * Math.PI / 180;
-    const spawnX = (stationSquareLonLat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
-    const spawnZ = -(stationSquareLonLat[1] - ORIGIN[1]) * 111111; // 緯度增加 = -Z (北方)
+    
+    const spawnX = (targetLonLat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
+    const spawnZ = -(targetLonLat[1] - ORIGIN[1]) * 111111; 
     
     player.mesh.position.set(spawnX, 0, spawnZ);
-    console.log(`🚀 Spawned at: 新竹站前廣場 (${Math.round(spawnX)}, ${Math.round(spawnZ)})`);
+    console.log(`🚀 Spawned at Guanghua: ${spawnX}, ${spawnZ}`);
+
+    // --- 大規模建置地標標牌 ---
+    landmarksData.forEach(data => {
+        const x = (data.lonlat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
+        const z = -(data.lonlat[1] - ORIGIN[1]) * 111111;
+        createFixedLandmark(scene, data.name, x, z, data.height || 5, data.rotation || 0, data.color || "#ffc800");
+    });
 
     const clock = new THREE.Clock();
     function animate() {
@@ -57,6 +64,47 @@ async function init() {
     });
 
     animate();
+}
+
+/**
+ * 建立固定朝向的 3D 路牌 Mesh
+ */
+function createFixedLandmark(scene, text, x, z, h, rotation, bgColor) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 512;
+    canvas.height = 128;
+    
+    // 背景
+    ctx.fillStyle = bgColor;
+    ctx.roundRect(0, 0, 512, 128, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+    
+    // 文字
+    ctx.fillStyle = 'black';
+    ctx.font = 'bold 64px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 256, 64);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    // 使用 Mesh 而非 Sprite 以獲得固定世界朝向
+    const geometry = new THREE.PlaneGeometry(12, 3);
+    const material = new THREE.MeshBasicMaterial({ 
+        map: texture, 
+        transparent: true,
+        side: THREE.DoubleSide // 雙面可見
+    });
+    
+    const sign = new THREE.Mesh(geometry, material);
+    sign.position.set(x, h, z);
+    // 設定路牌的旋轉角度 (繞 Y 軸)
+    sign.rotation.y = rotation;
+    
+    scene.add(sign);
 }
 
 init();

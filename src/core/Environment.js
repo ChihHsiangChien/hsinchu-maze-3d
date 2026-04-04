@@ -27,11 +27,6 @@ export class Environment {
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0.02; 
         this.scene.add(ground);
-        const grid = new THREE.GridHelper(5000, 100, 0xffffff, 0x338833);
-        grid.position.y = 0.03;
-        grid.material.opacity = 0.2;
-        grid.material.transparent = true;
-        this.scene.add(grid);
     }
 
     createRoads(roadsData) {
@@ -52,7 +47,6 @@ export class Environment {
             mesh.position.y = 0.05;
             this.scene.add(mesh);
         }
-        // 已移除 createRoadSigns，以優化效能
     }
 
     createBuildings(buildingsData) {
@@ -62,12 +56,18 @@ export class Environment {
             const shape = new THREE.Shape();
             shape.moveTo(b.coords[0][0], b.coords[0][1]);
             for (let i = 1; i < b.coords.length; i++) shape.lineTo(b.coords[i][0], b.coords[i][1]);
-            const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.5, bevelEnabled: false });
+            
+            // --- 修正：建築物高度提升為主角身高的 5 倍 (約 8~10 米) ---
+            // b.height 原本來自 OSM 資料，如果沒有則預設 8 米
+            const baseHeight = b.height > 2 ? b.height : 8.0; 
+            const geometry = new THREE.ExtrudeGeometry(shape, { depth: baseHeight, bevelEnabled: false });
             geometry.rotateX(-Math.PI / 2); 
-            const g = 0.6 + Math.random() * 0.3;
+
+            const g = 0.5 + Math.random() * 0.3;
             const color = new THREE.Color(g, g, g);
             const colors = [];
-            for (let i = 0; i < geometry.getAttribute('position').count; i++) colors.push(color.r, color.g, color.b);
+            const posAttr = geometry.getAttribute('position');
+            for (let i = 0; i < posAttr.count; i++) colors.push(color.r, color.g, color.b);
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
             geometries.push(geometry);
         });
@@ -75,7 +75,7 @@ export class Environment {
         if (geometries.length > 0) {
             const merged = BufferGeometryUtils.mergeGeometries(geometries);
             const mesh = new THREE.Mesh(merged, this.buildingMaterial);
-            mesh.position.y = 0.02;
+            mesh.position.y = 0.02; // 從綠地起跳
             this.scene.add(mesh);
         }
     }

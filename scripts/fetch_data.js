@@ -8,19 +8,15 @@ function geoToLocal(lon, lat) {
     const lon0 = ORIGIN[0];
     const lat0 = ORIGIN[1];
     const latRad = lat0 * Math.PI / 180;
-    
-    // 東經增加 = +X (East)
     const x = (lon - lon0) * 111111 * Math.cos(latRad);
-    // 北緯增加 = +Y (North)
     const y = (lat - lat0) * 111111; 
-    
     return [x, y];
 }
 
 async function fetchHsinchuData() {
-    console.log("🚀 Fetching Standard Mapping Data (East=+X, North=+Y)...");
-    const bbox = "24.790,120.955,24.815,120.985";
-    const query = `[out:json][timeout:90];(way["highway"](${bbox});way["building"](${bbox}););out body;>;out skel qt;`;
+    console.log("🚀 Fetching Clean Data (No placeholder names)...");
+    const bbox = "24.760,120.920,24.840,121.020";
+    const query = `[out:json][timeout:180];(way["highway"](${bbox});way["building"](${bbox}););out body;>;out skel qt;`;
 
     try {
         const response = await axios.post('https://overpass-api.de/api/interpreter', query);
@@ -38,11 +34,15 @@ async function fetchHsinchuData() {
 
             if (way.tags && way.tags.highway) {
                 if (['motorway', 'trunk'].includes(way.tags.highway)) return;
+                
+                // --- 修正：如果沒有路名就保持 null ---
+                const roadName = way.tags.name || null;
+                
                 const line = turf.lineString(pts);
                 const buffer = turf.buffer(line, 10, { units: 'meters' });
                 const poly = buffer.geometry.coordinates[0].map(p => geoToLocal(p[0], p[1]));
                 roads.push({
-                    name: way.tags.name || "新竹小巷",
+                    name: roadName,
                     poly: poly,
                     center: geoToLocal(pts[0][0], pts[0][1])
                 });
@@ -56,7 +56,7 @@ async function fetchHsinchuData() {
 
         fs.writeFileSync('public/data/roads.json', JSON.stringify(roads));
         fs.writeFileSync('public/data/buildings.json', JSON.stringify(buildings));
-        console.log("✅ Data Mapped: East=+X, North=+Y (Will rotate to -Z).");
+        console.log("✅ Clean Data Saved.");
     } catch (e) { console.error(e); }
 }
 

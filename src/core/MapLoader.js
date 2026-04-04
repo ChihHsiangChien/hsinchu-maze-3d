@@ -22,4 +22,14 @@ export class MapLoader {
             return [];
         }
     }
+
+    async loadLandmarks(url) {
+        try {
+            const response = await fetch(url);
+            return await response.json();
+        } catch (e) {
+            console.error("Failed to load landmarks:", e);
+            return [];
+        }
+    }
 }
