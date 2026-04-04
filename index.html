@@ -12,37 +12,40 @@
             border-radius: 30px; font-size: 20px; pointer-events: none; 
             z-index: 1000; text-align: center; width: auto; min-width: 200px;
         }
+        
         #compass {
-            position: absolute; top: 20px; right: 20px; width: 60px; height: 60px; 
-            background: rgba(0,0,0,0.5); border-radius: 50%; border: 2px solid white; z-index: 1000;
+            position: absolute; top: 20px; right: 20px; width: 80px; height: 80px; 
+            background: rgba(0,0,0,0.5); border-radius: 50%; border: 2px solid rgba(255,255,255,0.8); z-index: 1000;
         }
         #compass-pivot { width: 100%; height: 100%; position: relative; transition: transform 0.1s ease-out; }
         #compass-arrow { 
-            position: absolute; top: 10px; left: 28px; width: 4px; height: 40px; 
-            background: linear-gradient(to bottom, #ff0000 50%, #ffffff 50%); border-radius: 2px;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 2px; height: 60px; background: rgba(255,255,255,0.3);
         }
-        #compass-n { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); color: white; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; }
-
-        #debug-info {
-            position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); 
-            color: lime; padding: 10px; font-family: monospace; font-size: 11px; 
-            pointer-events: none; border-radius: 5px; z-index: 1000;
+        #compass-arrow-h { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60px; height: 2px; background: rgba(255,255,255,0.3);
         }
+        
+        .compass-label { 
+            position: absolute; color: white; font-weight: bold; font-size: 14px; 
+            text-shadow: 1px 1px 2px black; transform: translateX(-50%); 
+        }
+        #label-n { top: 4px; left: 50%; color: #ff4444; }
+        #label-s { bottom: 4px; left: 50%; }
+        #label-e { right: -2px; top: 50%; transform: translateY(-50%); }
+        #label-w { left: 8px; top: 50%; transform: translateY(-50%); }
 
-        /* 操作區樣式 */
+        #debug-info { display: none; }
+        .axis-label { display: none; }
+
         .control-zone {
             position: absolute; bottom: 30px; width: 140px; height: 140px;
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 20px; z-index: 100; touch-action: none;
         }
-        #rotation-zone { left: 30px; } /* 避開左側返回手勢 */
-        #joystick-zone { right: 30px; } /* 避開右側邊緣 */
-        
-        .zone-label {
-            position: absolute; top: -25px; width: 100%; text-align: center;
-            color: rgba(255,255,255,0.4); font-size: 12px; font-weight: bold;
-        }
-
+        #rotation-zone { left: 30px; }
+        #joystick-zone { right: 30px; }
         #joystick-base {
             position: absolute; top: 20px; left: 20px; width: 100px; height: 100px;
             background: rgba(255,255,255,0.1); border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
@@ -51,42 +54,34 @@
             position: absolute; top: 25px; left: 25px; width: 50px; height: 50px;
             background: rgba(255,255,255,0.5); border-radius: 50%;
         }
-        #rotation-icon {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 60px; height: 60px; border: 2px dashed rgba(255,255,255,0.2); border-radius: 50%;
-        }
     </style>
 </head>
 <body>
-    <div id="hud">目前路段：新竹火車站</div>
+    <!-- 恢復 HUD 路名顯示 -->
+    <div id="hud">正在取得定位...</div>
     
+    <!-- 十字指北針 -->
     <div id="compass">
         <div id="compass-pivot">
             <div id="compass-arrow"></div>
-            <div id="compass-n">N</div>
+            <div id="compass-arrow-h"></div>
+            <div id="label-n" class="compass-label">N</div>
+            <div id="label-s" class="compass-label">S</div>
+            <div id="label-e" class="compass-label">E</div>
+            <div id="label-w" class="compass-label">W</div>
         </div>
     </div>
 
-    <div id="debug-info">
-        POS: <span id="debug-pos">0, 0</span><br>
-        JOY: <span id="debug-joy">0, 0</span><br>
-        ROAD: <span id="debug-road">None</span><br>
-        FPS: <span id="debug-fps">0</span>
-    </div>
+    <!-- 隱藏元素 -->
+    <div id="debug-info"></div>
+    <div id="label-x" class="axis-label"></div>
+    <div id="label-y" class="axis-label"></div>
+    <div id="label-z" class="axis-label"></div>
     
-    <!-- 手機端觸控 UI -->
     <div id="mobile-controls" style="display: none;">
-        <!-- 左側旋轉區 -->
-        <div id="rotation-zone" class="control-zone">
-            <div class="zone-label">旋轉視角</div>
-            <div id="rotation-icon"></div>
-        </div>
-        <!-- 右側移動區 -->
+        <div id="rotation-zone" class="control-zone"></div>
         <div id="joystick-zone" class="control-zone">
-            <div class="zone-label">移動主角</div>
-            <div id="joystick-base">
-                <div id="joystick-knob"></div>
-            </div>
+            <div id="joystick-base"><div id="joystick-knob"></div></div>
         </div>
     </div>
 

@@ -14,10 +14,11 @@ export class Physics {
     }
 
     /**
-     * 直接使用 3D (x, z) 進行判定，不再轉換
+     * 關鍵修正：3D Z 對應 數據 -Y
      */
     getCurrentRoad(x, z) {
-        const point = turf.point([x, z]);
+        const dataY = -z; 
+        const point = turf.point([x, dataY]);
         for (const polygon of this.roadPolygons) {
             if (turf.booleanPointInPolygon(point, polygon)) {
                 return polygon.properties;

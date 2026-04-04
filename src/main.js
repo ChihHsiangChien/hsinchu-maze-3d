@@ -31,27 +31,17 @@ async function init() {
 
     const player = new Player(scene, camera, renderer.domElement, physics, hud);
     
-    // --- 關鍵修正：精確尋找「中華路」作為起點 ---
-    if (roadsData.length > 0) {
-        // 優先找中華路，如果找不到則找第一條路
-        let startRoad = roadsData.find(r => r.name.includes("中華路"));
-        
-        // 如果有中華路，嘗試找距離火車站 (0,0) 最近的那一段
-        const targetRoads = roadsData.filter(r => r.name.includes("中華路"));
-        if (targetRoads.length > 0) {
-            startRoad = targetRoads.reduce((prev, curr) => {
-                const prevDist = Math.sqrt(prev.center[0]**2 + prev.center[1]**2);
-                const currDist = Math.sqrt(curr.center[0]**2 + curr.center[1]**2);
-                return (currDist < prevDist) ? curr : prev;
-            });
-        } else {
-            startRoad = roadsData[0];
-        }
-
-        const start = startRoad.center;
-        player.mesh.position.set(start[0], 0, start[1]); 
-        console.log(`🚀 Spawned at: ${startRoad.name} (車站前) @ ${start[0]}, ${start[1]}`);
-    }
+    // --- 關鍵修正：精確定位在新竹站前廣場 ---
+    // 以火車站 [120.971, 24.801] 為原點，站前廣場座標約為 [120.9717, 24.8023]
+    const stationSquareLonLat = [120.9717, 24.8023];
+    const ORIGIN = [120.971, 24.801];
+    
+    const latRad = ORIGIN[1] * Math.PI / 180;
+    const spawnX = (stationSquareLonLat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
+    const spawnZ = -(stationSquareLonLat[1] - ORIGIN[1]) * 111111; // 緯度增加 = -Z (北方)
+    
+    player.mesh.position.set(spawnX, 0, spawnZ);
+    console.log(`🚀 Spawned at: 新竹站前廣場 (${Math.round(spawnX)}, ${Math.round(spawnZ)})`);
 
     const clock = new THREE.Clock();
     function animate() {
