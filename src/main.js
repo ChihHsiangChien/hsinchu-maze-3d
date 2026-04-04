@@ -10,14 +10,8 @@ async function init() {
     scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.Fog(0x87ceeb, 50, 2000);
 
-    // --- 修正破圖 1：提升 Near Plane 到 1.0 (增加精度) ---
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1.0, 3000);
-    
-    const renderer = new THREE.WebGLRenderer({ 
-        antialias: true,
-        // --- 修正破圖 2：啟動對數深度緩衝 (解決大場景 Z-fighting) ---
-        logarithmicDepthBuffer: true 
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
@@ -27,7 +21,7 @@ async function init() {
     const env = new Environment(scene);
     const physics = new Physics();
 
-    console.log("🚀 Loading Optimized World...");
+    console.log("🚀 Loading Massive World (15k+ Roads)...");
     
     const [roadsData, buildingsData, landmarksData] = await Promise.all([
         loader.loadRoads('data/roads.json'),
@@ -35,11 +29,11 @@ async function init() {
         loader.loadLandmarks('data/landmarks.json')
     ]);
 
+    // 這裡會執行空間索引優化
     physics.processRoads(roadsData);
     env.createRoads(roadsData);
     env.createBuildings(buildingsData);
     
-    // 定位光華起點
     const targetLonLat = [120.974073, 24.817853];
     const ORIGIN = [120.971, 24.801];
     const latRad = ORIGIN[1] * Math.PI / 180;
@@ -57,10 +51,15 @@ async function init() {
     const player = new Player(scene, camera, renderer.domElement, physics, hud);
     player.mesh.position.set(spawnX, 0, spawnZ);
 
-    const clock = new THREE.Clock();
+    // --- 使用 performance.now() 代替 Clock 以避免過時警告 ---
+    let lastTime = performance.now();
     function animate() {
         requestAnimationFrame(animate);
-        player.update(clock.getDelta());
+        const now = performance.now();
+        const delta = (now - lastTime) / 1000;
+        lastTime = now;
+
+        player.update(delta);
         renderer.render(scene, camera);
     }
 

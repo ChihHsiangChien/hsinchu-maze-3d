@@ -36,6 +36,30 @@
         #label-e { right: -2px; top: 50%; transform: translateY(-50%); }
         #label-w { left: 8px; top: 50%; transform: translateY(-50%); }
 
+        /* Info 按鈕樣式 */
+        #info-btn {
+            position: absolute; top: 35px; right: 110px; width: 45px; height: 45px;
+            background: rgba(0,0,0,0.5); border: 2px solid white; border-radius: 50%;
+            color: white; font-weight: bold; font-size: 24px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+
+        /* 說明視窗樣式 */
+        #info-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center;
+        }
+        .modal-content {
+            background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.3); max-width: 80%;
+        }
+        .instruction-grid { display: flex; gap: 40px; margin-top: 20px; text-align: left; }
+        .platform { border-top: 2px solid lime; padding-top: 10px; }
+        .platform h3 { color: lime; margin-top: 0; }
+        kbd { background: #444; padding: 2px 6px; border-radius: 4px; border: 1px solid #888; }
+
         #debug-info { display: none; }
         .axis-label { display: none; }
 
@@ -57,10 +81,31 @@
     </style>
 </head>
 <body>
-    <!-- 恢復 HUD 路名顯示 -->
     <div id="hud">正在取得定位...</div>
     
-    <!-- 十字指北針 -->
+    <div id="info-btn">i</div>
+
+    <div id="info-modal">
+        <div class="modal-content">
+            <h2>🎮 操作引導</h2>
+            <div class="instruction-grid">
+                <div class="platform">
+                    <h3>💻 電腦 (PC)</h3>
+                    <p>● <b>移動</b>：<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或 <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></p>
+                    <p>● <b>旋轉</b>：滑鼠左鍵點擊畫面任何處並「拖曳」</p>
+                    <p>● <b>縮放</b>：滑鼠滾輪</p>
+                </div>
+                <div class="platform">
+                    <h3>📱 手機 (Touch)</h3>
+                    <p>● <b>移動</b>：右下角「移動主角」搖桿區</p>
+                    <p>● <b>旋轉</b>：左下角「旋轉視角」感應區</p>
+                    <p>● <b>目標</b>：跟著黑色道路探索新竹！</p>
+                </div>
+            </div>
+            <p style="margin-top: 30px; opacity: 0.6;">( 點擊任意處關閉 )</p>
+        </div>
+    </div>
+
     <div id="compass">
         <div id="compass-pivot">
             <div id="compass-arrow"></div>
@@ -86,5 +131,12 @@
     </div>
 
     <script type="module" src="/src/main.js"></script>
+    <script>
+        // 簡易 UI 互動邏輯
+        const infoBtn = document.getElementById('info-btn');
+        const modal = document.getElementById('info-modal');
+        infoBtn.onclick = () => modal.style.display = 'flex';
+        modal.onclick = () => modal.style.display = 'none';
+    </script>
 </body>
 </html>
