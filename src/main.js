@@ -10,10 +10,16 @@ async function init() {
     scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.Fog(0x87ceeb, 50, 2000);
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // --- 修正破圖 1：提升 Near Plane 到 1.0 (增加精度) ---
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1.0, 3000);
+    
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: true,
+        // --- 修正破圖 2：啟動對數深度緩衝 (解決大場景 Z-fighting) ---
+        logarithmicDepthBuffer: true 
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
     const hud = new HUD();
@@ -21,7 +27,7 @@ async function init() {
     const env = new Environment(scene);
     const physics = new Physics();
 
-    console.log("🚀 Loading World...");
+    console.log("🚀 Loading Optimized World...");
     
     const [roadsData, buildingsData, landmarksData] = await Promise.all([
         loader.loadRoads('data/roads.json'),
@@ -40,10 +46,8 @@ async function init() {
     const spawnX = (targetLonLat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
     const spawnZ = -(targetLonLat[1] - ORIGIN[1]) * 111111; 
 
-    // 生成密集植被
     env.generateRandomTrees(physics, 1500, spawnX, spawnZ);
 
-    // --- 關鍵修正：恢復地標標牌渲染 ---
     landmarksData.forEach(data => {
         const x = (data.lonlat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
         const z = -(data.lonlat[1] - ORIGIN[1]) * 111111;
@@ -69,9 +73,6 @@ async function init() {
     animate();
 }
 
-/**
- * 建立固定朝向的 3D 路牌
- */
 function createFixedLandmark(scene, text, x, z, h, rotation, bgColor) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -80,7 +81,6 @@ function createFixedLandmark(scene, text, x, z, h, rotation, bgColor) {
     ctx.strokeStyle = 'black'; ctx.lineWidth = 8; ctx.stroke();
     ctx.fillStyle = 'black'; ctx.font = 'bold 64px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(text, 256, 64);
-    
     const texture = new THREE.CanvasTexture(canvas);
     const geometry = new THREE.PlaneGeometry(12, 3);
     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
