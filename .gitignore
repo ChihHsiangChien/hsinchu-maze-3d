@@ -1,0 +1,7 @@
+node_modules
+dist
+.vscode
+.DS_Store
+public/data/roads.json
+public/data/buildings.json
+package-lock.json
