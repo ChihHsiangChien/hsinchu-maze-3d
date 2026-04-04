@@ -31,12 +31,26 @@ async function init() {
 
     const player = new Player(scene, camera, renderer.domElement, physics, hud);
     
-    // 初始化位置：3D (x, z) 必須對應數據產出的 (x, z)
+    // --- 關鍵修正：精確尋找「中華路」作為起點 ---
     if (roadsData.length > 0) {
-        const start = roadsData[0].center;
-        // 在數據中 z 已經是 -(lat-lat0)，直接使用即可
+        // 優先找中華路，如果找不到則找第一條路
+        let startRoad = roadsData.find(r => r.name.includes("中華路"));
+        
+        // 如果有中華路，嘗試找距離火車站 (0,0) 最近的那一段
+        const targetRoads = roadsData.filter(r => r.name.includes("中華路"));
+        if (targetRoads.length > 0) {
+            startRoad = targetRoads.reduce((prev, curr) => {
+                const prevDist = Math.sqrt(prev.center[0]**2 + prev.center[1]**2);
+                const currDist = Math.sqrt(curr.center[0]**2 + curr.center[1]**2);
+                return (currDist < prevDist) ? curr : prev;
+            });
+        } else {
+            startRoad = roadsData[0];
+        }
+
+        const start = startRoad.center;
         player.mesh.position.set(start[0], 0, start[1]); 
-        console.log(`Spawned at: ${roadsData[0].name} @ ${start[0]}, ${start[1]}`);
+        console.log(`🚀 Spawned at: ${startRoad.name} (車站前) @ ${start[0]}, ${start[1]}`);
     }
 
     const clock = new THREE.Clock();
