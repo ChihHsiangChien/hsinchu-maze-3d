@@ -30,8 +30,8 @@ export class Environment {
     }
 
     createRoads(roadsData) {
-        // ✨ 分組處理：每 50 條路徑合併一個 Mesh，以便未來進行局部隱藏 (Culling)
-        const CHUNK_SIZE = 50;
+        // ✨ 分組處理：每 20 條路徑合併一個 Mesh，以便更精確地進行局部隱藏 (Culling)
+        const CHUNK_SIZE = 20;
         for (let i = 0; i < roadsData.length; i += CHUNK_SIZE) {
             const chunk = roadsData.slice(i, i + CHUNK_SIZE);
             const geometries = [];

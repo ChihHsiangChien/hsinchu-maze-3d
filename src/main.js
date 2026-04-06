@@ -154,7 +154,7 @@ async function startGame(nickname, isAdmin) {
 
     let lastTime = performance.now();
     let lastCullingTime = 0;
-    const CULL_DIST_SQ = 2000 * 2000; // 2公里外的物件隱藏
+    const CULL_DIST_SQ = 5000 * 5000; // ✨ 提升至 5公里，與迷霧同步
 
     function animate() {
         requestAnimationFrame(animate);
