@@ -7,8 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist -r https://github.com/ChihHsiangChien/hsinchu-maze-3d.git"
+    "deploy": "npm run build && cd dist && rm -rf .git && git init && git checkout -b gh-pages && git remote add origin https://github.com/ChihHsiangChien/hsinchu-maze-3d.git && git add . && git commit -m 'deploy: update maze data' && git push -f origin gh-pages && cd .."
   },
   "keywords": [],
   "author": "",
