@@ -4,26 +4,27 @@
 
 ## 快速啟動
 
-### 1. 本地開發環境 (Local Development)
-```bash
-# 安裝依賴
-npm install
+### 1. 本地開發環境 (需開啟 2-3 個終端機)
 
-# 啟動開發伺服器
+若要進行完整的本地多人開發測試，請分別開啟多個終端機視窗執行以下指令：
+
+**終端機 A：啟動前端 (Vite)**
+```bash
+# 提供網頁前端內容
 npm run dev
 ```
 前端運行於 5173 埠。存取地址：http://localhost:5173。
-*   注意：本地開發模式預設會嘗試啟動多人連線模組。
 
-### 2. 啟動多人連線後端 (選配 - Multi-User Server)
-若要在本地進行多人連線測試，請啟動後端伺服器：
+**終端機 B：啟動後端 (多人遊戲伺服器)**
 ```bash
+# 負責處理玩家位置與通訊同步
 node server.js
 ```
 預設監聽 8888 埠。
 
-### 3. 啟動模擬機器人 (選配)
+**終端機 C：啟動模擬機器人 (選配)**
 ```bash
+# 生成智慧導航機器人進行壓力測試
 node scripts/simulate_bots.js
 ```
 依據設定檔生成指定數量的智慧導航機器人。
@@ -44,7 +45,7 @@ npm run deploy
 *   多人模式 (手動指定)：若要讓遠端玩家連回您的伺服器，請在網址後加上 server 參數：
     https://chihhsiangchien.github.io/hsinchu-maze-3d/?server=您的公網IP
 
-> 💡 重要提示：若要在 HTTPS (GitHub) 下連線到不具備 SSL 的 HTTP 伺服器，請在瀏覽器網址列左側點擊「鎖頭/網站設定」，將「不安全的內容 (Insecure content)」設為「允許」。
+> 重要提示：若要在 HTTPS (GitHub) 下連線到不具備 SSL 的 HTTP 伺服器，請在瀏覽器網址列左側點擊「鎖頭/網站設定」，將「不安全的內容 (Insecure content)」設為「允許」。
 
 ---
 
