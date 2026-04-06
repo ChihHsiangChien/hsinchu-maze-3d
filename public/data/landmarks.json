@@ -2,57 +2,44 @@
     {
         "name": "光華迷宮",
         "latlon": [24.817853, 120.974073],
-        "rotation": 0,
+        "rotation": 180,
         "color": "#ffc800",
         "height": 5.0
     },
     {
         "name": "新竹驛",
-        "latlon": [24.801, 120.971],
-        "rotation": 1.57,
+        "latlon": [24.801785085301045, 120.97146222418941],
+        "rotation": 45,
         "color": "#ff4444",
         "height": 6.0
     },
     {
         "name": "巨大城堡",
         "latlon": [24.8093508638239, 120.97544826971323],
-        "rotation": 0,
+        "rotation": 180,
         "color": "#4444ff",
         "height": 8.0
     },
     {
         "name": "迎曦古門",
-        "latlon": [24.804, 120.971],
-        "rotation": 0,
+        "latlon": [24.804239576323127, 120.97049545492712],
+        "rotation": 180,
         "color": "#ffffff",
         "height": 5.0
     },
     {
         "name": "幽冥法庭",
-        "latlon": [24.805, 120.966],
-        "rotation": 1.57,
+        "latlon": [24.80461831028598, 120.96575727195322],
+        "rotation": 90,
         "color": "#aa00ff",
         "height": 5.0
     },
     {
-        "name": "翡翠森之國",
-        "latlon": [24.806, 120.981],
-        "rotation": -0.5,
-        "color": "#00ff00",
-        "height": 6.0
-    },
-    {
         "name": "州廳白宮",
-        "latlon": [24.807, 120.968],
-        "rotation": 0,
+        "latlon": [24.806603197081838, 120.96870144069358],
+        "rotation": 180,
         "color": "#eeeeee",
         "height": 7.0
-    },
-    {
-        "name": "琉璃幻境",
-        "latlon": [24.807, 120.979],
-        "rotation": 1.2,
-        "color": "#00ffff",
-        "height": 5.0
     }
+
 ]

@@ -80,7 +80,13 @@ async function startGame(nickname, isAdmin) {
     landmarksData.forEach(data => {
         const x = (data.latlon[1] - ORIGIN[0]) * 111111 * Math.cos(latRad);
         const z = -(data.latlon[0] - ORIGIN[1]) * 111111;
-        createFixedLandmark(scene, data.name, x, z, data.height || 5, data.rotation || 0, data.color || "#ffc800");
+        
+        // ✨ 新增：角度量(度)轉弧度，且基準改為北方 0 度順時針
+        // 方位角(Azimuth) 轉 Three.js 旋轉：(180 - degree) * PI / 180
+        const degree = data.rotation || 0;
+        const radian = (180 - degree) * (Math.PI / 180);
+        
+        createFixedLandmark(scene, data.name, x, z, data.height || 5, radian, data.color || "#ffc800");
     });
 
     const player = new Player(scene, camera, renderer.domElement, physics, hud);
