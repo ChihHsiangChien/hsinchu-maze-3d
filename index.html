@@ -72,6 +72,7 @@
             width: 80%; padding: 15px; font-size: 18px; border-radius: 10px;
             border: 1px solid #00ffcc; background: rgba(0,0,0,0.3); color: white;
             margin-bottom: 20px; outline: none; text-align: center;
+            /* 防止 iOS 聚焦縮放 */
         }
         .login-box button {
             width: 80%; padding: 15px; font-size: 20px; font-weight: bold;
@@ -82,10 +83,11 @@
 
         body { 
             margin: 0; overflow: hidden; background-color: #87ceeb; font-family: sans-serif; 
+            user-select: none; -webkit-user-select: none;
+            /* ✨ 防止 iPad 佈局偏移、橡皮筋回彈與手勢縮放 */
+            position: fixed; width: 100vw; height: 100vh; 
+            overscroll-behavior: none;
             touch-action: none; 
-            user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
-            /* ✨ 防止 iPad 佈局偏移與橡皮筋回彈 */
-            position: fixed; width: 100vw; height: 100vh; overscroll-behavior: none;
         }
         canvas { display: block; width: 100%; height: 100%; }
         #hud { 
@@ -231,8 +233,25 @@
         </div>
     </div>
 
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="src/main.js"></script>
     <script>
+        // ✨ 防止 iOS 雙擊縮放 (Double-tap to zoom)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // 防止多指縮放 (Pinch to zoom)
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
         const infoBtn = document.getElementById('info-btn');
         const modal = document.getElementById('info-modal');
         infoBtn.onclick = () => modal.style.display = 'flex';
