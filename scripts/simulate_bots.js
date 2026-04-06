@@ -45,16 +45,28 @@ function createBot(index) {
 
     setInterval(() => {
         if (!isWalking || !socket.connected) return;
-        const speed = 1.2;
-        const nextX = pos.x + Math.sin(rot) * speed;
-        const nextZ = pos.z + Math.cos(rot) * speed;
+        
+        const speed = 1.5; // ✨ 稍稍加快速度
+        // ✨ 修正位移邏輯：在 Three.js 中，負 Z 方向才是前方
+        // 因此我們需要減去向量，讓機器人朝向它的 rot 前進
+        const nextX = pos.x - Math.sin(rot) * speed;
+        const nextZ = pos.z - Math.cos(rot) * speed;
+        
         if (isOnRoad(nextX, nextZ)) {
-            pos.x = nextX; pos.z = nextZ;
-            rot += (Math.random() - 0.5) * 0.1;
+            pos.x = nextX; 
+            pos.z = nextZ;
+            // ✨ 平滑隨機轉向
+            rot += (Math.random() - 0.5) * 0.15;
         } else {
-            rot += Math.PI * 0.5 + Math.random();
+            // ✨ 撞牆時大轉向
+            rot += Math.PI * 0.4 + Math.random() * 0.5;
         }
-        socket.emit('playerMovement', { pos, rot });
+        
+        // ✨ 傳送位置與旋轉
+        socket.emit('playerMovement', { 
+            pos: { x: pos.x, y: 0, z: pos.z }, 
+            rot: rot 
+        });
     }, 100);
     return socket;
 }
