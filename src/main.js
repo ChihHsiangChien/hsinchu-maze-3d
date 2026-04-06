@@ -44,10 +44,11 @@ async function startGame(nickname, isAdmin) {
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    // ✨ 使用設定檔的迷霧距離
-    scene.fog = new THREE.Fog(0x87ceeb, 50, settingsData.fogDistance || 5000); 
+    // ✨ 管理員模式下移除迷霧 (設為極大值)，普通玩家維持設定檔距離
+    const fogDist = isAdmin ? 1000000 : (settingsData.fogDistance || 5000);
+    scene.fog = new THREE.Fog(0x87ceeb, 50, fogDist); 
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1.0, 10000);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1.0, 100000); // 提升遠裁切面以配合無迷霧視距
     const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -164,14 +165,22 @@ async function startGame(nickname, isAdmin) {
 
         // ✨ 效能優化：每 2 秒執行一次距離剔除 (Distance Culling)
         if (now - lastCullingTime > 2000) {
-            const playerPos = isAdmin ? (window.adminControls ? window.adminControls.target : new THREE.Vector3()) : player.mesh.position;
-            scene.traverse(obj => {
-                if (obj.name && (obj.name.startsWith('road_chunk_') || obj.name.startsWith('building_chunk_'))) {
-                    // 使用平方距離比較，避開 Math.sqrt 開根號運算
-                    const distSq = obj.position.distanceToSquared(playerPos);
-                    obj.visible = distSq < CULL_DIST_SQ;
-                }
-            });
+            if (isAdmin) {
+                // 管理員模式下：顯示所有區塊 (或設定極大可視範圍)
+                scene.traverse(obj => {
+                    if (obj.name && (obj.name.startsWith('road_chunk_') || obj.name.startsWith('building_chunk_'))) {
+                        obj.visible = true;
+                    }
+                });
+            } else {
+                const playerPos = player.mesh.position;
+                scene.traverse(obj => {
+                    if (obj.name && (obj.name.startsWith('road_chunk_') || obj.name.startsWith('building_chunk_'))) {
+                        const distSq = obj.position.distanceToSquared(playerPos);
+                        obj.visible = distSq < CULL_DIST_SQ;
+                    }
+                });
+            }
             lastCullingTime = now;
         }
 
