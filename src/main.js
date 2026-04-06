@@ -153,11 +153,28 @@ async function startGame(nickname, isAdmin) {
     }
 
     let lastTime = performance.now();
+    let lastCullingTime = 0;
+    const CULL_DIST_SQ = 2000 * 2000; // 2公里外的物件隱藏
+
     function animate() {
         requestAnimationFrame(animate);
         const now = performance.now();
         const delta = (now - lastTime) / 1000;
         lastTime = now;
+
+        // ✨ 效能優化：每 2 秒執行一次距離剔除 (Distance Culling)
+        if (now - lastCullingTime > 2000) {
+            const playerPos = isAdmin ? (window.adminControls ? window.adminControls.target : new THREE.Vector3()) : player.mesh.position;
+            scene.traverse(obj => {
+                if (obj.name && (obj.name.startsWith('road_chunk_') || obj.name.startsWith('building_chunk_'))) {
+                    // 使用平方距離比較，避開 Math.sqrt 開根號運算
+                    const distSq = obj.position.distanceToSquared(playerPos);
+                    obj.visible = distSq < CULL_DIST_SQ;
+                }
+            });
+            lastCullingTime = now;
+        }
+
         if (isAdmin) {
             window.adminControls.update(); 
             const compass = document.getElementById('compass-pivot');

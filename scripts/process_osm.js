@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const turf = require('@turf/turf');
 
 // 設定原點：新竹火車站
 const ORIGIN = [120.971, 24.801];
@@ -24,12 +25,20 @@ function processOsmData(osmData) {
     const buildings = [];
 
     osmData.elements.filter(el => el.type === 'way').forEach(way => {
-        const coords = way.nodes.map(nodeId => {
+        let coords = way.nodes.map(nodeId => {
             const [lon, lat] = nodes[nodeId];
             return geoToLocal(lon, lat);
         });
 
         if (way.tags.highway) {
+            // ✨ 道路節點簡化 (RDP 演算法)
+            // 將座標陣列轉為 Turf 線條，進行簡化後再轉回
+            if (coords.length > 2) {
+                const line = turf.lineString(coords);
+                const simplified = turf.simplify(line, { tolerance: 0.1, highQuality: false });
+                coords = simplified.geometry.coordinates;
+            }
+
             roads.push({
                 id: way.id,
                 name: way.tags.name || "無名小巷",
