@@ -134,8 +134,17 @@ async function startGame(nickname, isAdmin) {
         });
     }
 
-    // ✨ 傳入動態 Port 與 Host
-    const multiplayer = new MultiplayerManager(scene, player, nickname, isAdmin, { x: spawnX, y: 0, z: spawnZ }, PORT, HOST);
+    // ✨ 只有在本地開發或明確指定伺服器時才啟動多人連線
+    let multiplayer = null;
+    const isGitHub = window.location.hostname.includes('github.io');
+    const hasServerParam = urlParams.has('server');
+    
+    if (!isGitHub || hasServerParam) {
+        console.log("🌐 Initializing Multiplayer Mode...");
+        multiplayer = new MultiplayerManager(scene, player, nickname, isAdmin, { x: spawnX, y: 0, z: spawnZ }, PORT, HOST);
+    } else {
+        console.log("🚶 Single Player Mode (No server connection)");
+    }
 
     let lastTime = performance.now();
     function animate() {
@@ -155,7 +164,7 @@ async function startGame(nickname, isAdmin) {
         } else {
             player.update(delta);
         }
-        multiplayer.update();
+        if (multiplayer) multiplayer.update();
         renderer.render(scene, camera);
     }
     window.addEventListener('resize', () => {
