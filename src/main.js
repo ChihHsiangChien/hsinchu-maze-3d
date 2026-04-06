@@ -28,11 +28,19 @@ async function init() {
 }
 
 async function startGame(nickname, isAdmin) {
-    // 1. ✨ 優先載入中央設定檔
-    const settingsData = await fetch('data/settings.json').then(res => res.json());
+    // 1. ✨ 優先載入中央設定檔 (增加錯誤處理防止中斷)
+    let settingsData = { origin: [24.801, 120.971], spawn: [24.817853, 120.974073], serverPort: 8888 };
+    try {
+        settingsData = await fetch('data/settings.json').then(res => res.json());
+    } catch (e) { console.warn("Could not load settings.json, using defaults."); }
+
     const ORIGIN = [settingsData.origin[1], settingsData.origin[0]]; 
     const SPAWN = [settingsData.spawn[1], settingsData.spawn[0]];
-    const PORT = settingsData.serverPort || 8888;
+
+    // ✨ 優先順序：URL 參數 > settings.json > 預設值 (window.location.hostname)
+    const urlParams = new URLSearchParams(window.location.search);
+    const PORT = urlParams.get('port') || settingsData.serverPort || 8888;
+    const HOST = urlParams.get('server') || settingsData.serverHost || window.location.hostname;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
@@ -126,8 +134,8 @@ async function startGame(nickname, isAdmin) {
         });
     }
 
-    // ✨ 傳入動態 Port
-    const multiplayer = new MultiplayerManager(scene, player, nickname, isAdmin, { x: spawnX, y: 0, z: spawnZ }, PORT);
+    // ✨ 傳入動態 Port 與 Host
+    const multiplayer = new MultiplayerManager(scene, player, nickname, isAdmin, { x: spawnX, y: 0, z: spawnZ }, PORT, HOST);
 
     let lastTime = performance.now();
     function animate() {

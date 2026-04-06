@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { io } from 'socket.io-client';
 
 export class MultiplayerManager {
-    constructor(scene, player, nickname, isAdmin = false, initialPos = null, serverPort = 8888) {
+    constructor(scene, player, nickname, isAdmin = false, initialPos = null, serverPort = 8888, serverHost = null) {
         this.scene = scene;
         this.player = player;
         this.nickname = nickname;
@@ -18,7 +18,13 @@ export class MultiplayerManager {
         this.lastUIRenderTime = 0;
         this.maxVisibleDist = isAdmin ? 4000 : 600; 
         
-        const serverUrl = `http://${window.location.hostname}:${serverPort}`;
+        // ✨ 自動判斷通訊協定
+        // 如果網頁是 HTTPS，連線也必須是 HTTPS (wss) 才能通過瀏覽器檢查
+        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        const host = serverHost || window.location.hostname;
+        const serverUrl = `${protocol}//${host}:${serverPort}`;
+        
+        console.log(`🔌 Attempting connection to: ${serverUrl}`);
         this.init(serverUrl);
 
         if (this.isAdmin && this.player && this.player.mesh) {
