@@ -5,7 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hsinchu 3D City Maze</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87ceeb; font-family: sans-serif; touch-action: none; }
+        /* 大廳等候畫面 */
+        #lobby-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2500; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            color: #00ffcc; text-align: center;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid rgba(0,255,204,0.3);
+            border-top: 5px solid #00ffcc; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 管理員管理面板 */
+        #admin-panel {
+            position: absolute; left: 20px; top: 120px; width: 300px;
+            max-height: 75vh; background: rgba(0,0,0,0.85); border: 2px solid #ff00ff;
+            border-radius: 15px; color: white; padding: 15px; z-index: 1100;
+            display: none; flex-direction: column; 
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
+            pointer-events: auto; /* 確保可以點擊 */
+        }
+        #admin-content { 
+            flex: 1; 
+            overflow-y: auto; 
+            margin-top: 10px;
+            padding-right: 5px;
+            /* 讓滾動更平滑 */
+            -webkit-overflow-scrolling: touch;
+        }
+        /* 客製化滾動條 */
+        #admin-content::-webkit-scrollbar { width: 6px; }
+        #admin-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); }
+        #admin-content::-webkit-scrollbar-thumb { background: #ff00ff; border-radius: 3px; }
+
+        #player-list { display: flex; flex-direction: column; }
+        #admin-panel h3 { margin-top: 0; color: #ff00ff; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .player-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 10px; font-size: 14px; background: rgba(255,255,255,0.1);
+            padding: 8px; border-radius: 5px;
+        }
+        .admin-btn { 
+            padding: 4px 8px; font-size: 12px; cursor: pointer; border: none; border-radius: 3px; 
+            margin-left: 5px; font-weight: bold;
+        }
+        .btn-allow { background: #00ffcc; color: #000; }
+        .btn-reset { background: #ff4444; color: #fff; }
+
+        /* 登入視窗樣式 */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            z-index: 3000; display: flex; align-items: center; justify-content: center;
+            color: white; text-align: center;
+        }
+        .login-box {
+            background: rgba(0,0,0,0.5); padding: 40px; border-radius: 30px;
+            border: 2px solid #00ffcc; box-shadow: 0 0 20px rgba(0,255,204,0.3);
+            max-width: 90%; width: 400px;
+        }
+        .login-box h1 { margin-top: 0; letter-spacing: 3px; color: #00ffcc; }
+        .login-box input {
+            width: 80%; padding: 15px; font-size: 18px; border-radius: 10px;
+            border: 1px solid #00ffcc; background: rgba(0,0,0,0.3); color: white;
+            margin-bottom: 20px; outline: none; text-align: center;
+        }
+        .login-box button {
+            width: 80%; padding: 15px; font-size: 20px; font-weight: bold;
+            border-radius: 10px; border: none; background: #00ffcc; color: #000;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .login-box button:active { transform: scale(0.95); }
+
+        body { 
+            margin: 0; overflow: hidden; background-color: #87ceeb; font-family: sans-serif; 
+            touch-action: none; 
+            user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
+            /* ✨ 防止 iPad 佈局偏移與橡皮筋回彈 */
+            position: fixed; width: 100vw; height: 100vh; overscroll-behavior: none;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
         #hud { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
             color: white; background: rgba(0,0,0,0.6); padding: 10px 30px; 
@@ -28,15 +110,18 @@
         }
         
         .compass-label { 
-            position: absolute; color: white; font-weight: bold; font-size: 14px; 
-            text-shadow: 1px 1px 2px black; transform: translateX(-50%); 
+            position: absolute; color: white; font-weight: bold; font-size: 18px; 
+            text-shadow: 1px 1px 2px black; 
+            top: 50%; left: 50%;
+            transform-origin: center;
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
         }
-        #label-n { top: 4px; left: 50%; color: #ff4444; }
-        #label-s { bottom: 4px; left: 50%; }
-        #label-e { right: -2px; top: 50%; transform: translateY(-50%); }
-        #label-w { left: 8px; top: 50%; transform: translateY(-50%); }
+        #label-n { transform: translate(-50%, -50%) rotate(0deg) translateY(-32px); color: #ff4444; }
+        #label-s { transform: translate(-50%, -50%) rotate(180deg) translateY(-32px); }
+        #label-e { transform: translate(-50%, -50%) rotate(90deg) translateY(-32px); }
+        #label-w { transform: translate(-50%, -50%) rotate(-90deg) translateY(-32px); }
 
-        /* Info 按鈕樣式 */
         #info-btn {
             position: absolute; top: 35px; right: 110px; width: 45px; height: 45px;
             background: rgba(0,0,0,0.5); border: 2px solid white; border-radius: 50%;
@@ -44,7 +129,6 @@
             display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
 
-        /* 說明視窗樣式 */
         #info-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 2000; display: none;
@@ -59,9 +143,6 @@
         .platform { border-top: 2px solid lime; padding-top: 10px; }
         .platform h3 { color: lime; margin-top: 0; }
         kbd { background: #444; padding: 2px 6px; border-radius: 4px; border: 1px solid #888; }
-
-        #debug-info { display: none; }
-        .axis-label { display: none; }
 
         .control-zone {
             position: absolute; bottom: 30px; width: 140px; height: 140px;
@@ -81,8 +162,36 @@
     </style>
 </head>
 <body>
+    <div id="login-screen">
+        <div class="login-box">
+            <h1>HSINCHU 3D</h1>
+            <p>請輸入您的暱稱開始探索</p>
+            <input type="text" id="nickname-input" placeholder="您的姓名標籤" maxlength="10">
+            <br>
+            <button id="join-btn">進入新竹</button>
+            <p style="font-size: 12px; margin-top: 20px; opacity: 0.6;">( 支援手機與 PC 跨平台操作 )</p>
+        </div>
+    </div>
+
+    <div id="lobby-overlay">
+        <div class="spinner"></div>
+        <h2>已進入大廳</h2>
+        <p>管理員正在確認您的身份，請稍候...</p>
+    </div>
+
+    <div id="admin-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px;">
+            <h3 style="margin: 0; color: #ff00ff;">玩家管理室</h3>
+            <button id="admin-toggle-btn" style="background: none; border: 1px solid #ff00ff; color: #ff00ff; cursor: pointer; border-radius: 5px; padding: 2px 8px;">收合</button>
+        </div>
+        <div id="admin-content">
+            <div id="player-list">
+                <!-- 玩家列表由 JS 動態生成 -->
+            </div>
+        </div>
+    </div>
+
     <div id="hud">正在取得定位...</div>
-    
     <div id="info-btn">i</div>
 
     <div id="info-modal">
@@ -93,13 +202,11 @@
                     <h3>💻 電腦 (PC)</h3>
                     <p>● <b>移動</b>：<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或 <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></p>
                     <p>● <b>旋轉</b>：滑鼠左鍵點擊畫面任何處並「拖曳」</p>
-                    <p>● <b>縮放</b>：滑鼠滾輪</p>
                 </div>
                 <div class="platform">
                     <h3>📱 手機 (Touch)</h3>
                     <p>● <b>移動</b>：右下角「移動主角」搖桿區</p>
                     <p>● <b>旋轉</b>：左下角「旋轉視角」感應區</p>
-                    <p>● <b>目標</b>：跟著黑色道路探索新竹！</p>
                 </div>
             </div>
             <p style="margin-top: 30px; opacity: 0.6;">( 點擊任意處關閉 )</p>
@@ -110,19 +217,13 @@
         <div id="compass-pivot">
             <div id="compass-arrow"></div>
             <div id="compass-arrow-h"></div>
-            <div id="label-n" class="compass-label">N</div>
-            <div id="label-s" class="compass-label">S</div>
-            <div id="label-e" class="compass-label">E</div>
-            <div id="label-w" class="compass-label">W</div>
+            <div id="label-n" class="compass-label">北</div>
+            <div id="label-s" class="compass-label">南</div>
+            <div id="label-e" class="compass-label">東</div>
+            <div id="label-w" class="compass-label">西</div>
         </div>
     </div>
 
-    <!-- 隱藏元素 -->
-    <div id="debug-info"></div>
-    <div id="label-x" class="axis-label"></div>
-    <div id="label-y" class="axis-label"></div>
-    <div id="label-z" class="axis-label"></div>
-    
     <div id="mobile-controls" style="display: none;">
         <div id="rotation-zone" class="control-zone"></div>
         <div id="joystick-zone" class="control-zone">
@@ -132,7 +233,6 @@
 
     <script type="module" src="/src/main.js"></script>
     <script>
-        // 簡易 UI 互動邏輯
         const infoBtn = document.getElementById('info-btn');
         const modal = document.getElementById('info-modal');
         infoBtn.onclick = () => modal.style.display = 'flex';

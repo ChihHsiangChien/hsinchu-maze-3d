@@ -14,11 +14,27 @@ function geoToLocal(lon, lat) {
 }
 
 async function fetchHsinchuCyberData() {
-    console.log("🚀 Fetching Cyber-Forest Data...");
-    const bbox = "24.790,120.955,24.815,120.985";
+    console.log("🚀 Fetching Cyber-Forest Data (4km Square around Guanghua Maze)...");
+    
+    // 中心點：光華迷宮 [120.974073, 24.817853]
+    const centerLat = 24.817853;
+    const centerLon = 120.974073;
+    
+    // 偏移量計算 (2km)
+    // 緯度 1度約 111.1km -> 2km 約 0.018度
+    // 經度 1度約 111.1 * cos(lat) -> 2km 約 0.0198度
+    const dLat = 0.018;
+    const dLon = 0.0198;
+    
+    const minLat = centerLat - dLat;
+    const maxLat = centerLat + dLat;
+    const minLon = centerLon - dLon;
+    const maxLon = centerLon + dLon;
+    
+    const bbox = `${minLat},${minLon},${maxLat},${maxLon}`;
     
     const query = `
-        [out:json][timeout:90];
+        [out:json][timeout:180];
         (
           way["highway"](${bbox});
           way["building"](${bbox});
@@ -48,12 +64,31 @@ async function fetchHsinchuCyberData() {
                 if (pts.length < 2) return;
 
                 if (el.tags && el.tags.highway) {
-                    if (['motorway', 'trunk'].includes(el.tags.highway)) return;
+                    // 排除快速道路與高速公路 (motorway, trunk 及其連接路段)
+                    if (['motorway', 'trunk', 'motorway_link', 'trunk_link'].includes(el.tags.highway)) return;
+
+                    // 根據道路等級設定寬度 (單位：公尺)
+                    // 原本統一為 10m，現在根據類型縮減寬度
+                    const roadWidths = {
+                        'primary': 8,
+                        'secondary': 6.5,
+                        'tertiary': 5,
+                        'residential': 4,
+                        'service': 3,
+                        'unclassified': 3.5,
+                        'pedestrian': 2.5,
+                        'footway': 2,
+                        'path': 2,
+                        'living_street': 4
+                    };
+                    const width = roadWidths[el.tags.highway] || 3; // 預設 3m
+
                     const line = turf.lineString(pts);
-                    const buffer = turf.buffer(line, 10, { units: 'meters' });
+                    const buffer = turf.buffer(line, width, { units: 'meters' });
                     const poly = buffer.geometry.coordinates[0].map(p => geoToLocal(p[0], p[1]));
                     roads.push({
                         name: el.tags.name || null,
+                        type: el.tags.highway,
                         poly: poly,
                         center: geoToLocal(pts[0][0], pts[0][1])
                     });

@@ -1,0 +1,8 @@
+{
+    "origin": [24.801, 120.971],
+    "spawn": [24.817853, 120.974073],
+    "serverPort": 8888,
+    "botCount": 15,
+    "treeCount": 1500,
+    "fogDistance": 5000
+}

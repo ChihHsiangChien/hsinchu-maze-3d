@@ -1,16 +1,45 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { MapLoader } from './core/MapLoader.js';
 import { Environment } from './core/Environment.js';
 import { Player } from './core/Player.js';
 import { Physics } from './utils/Physics.js';
 import { HUD } from './ui/HUD.js';
+import { MultiplayerManager } from './core/MultiplayerManager.js';
 
 async function init() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdmin = urlParams.get('admin') === 'true';
+    const loginScreen = document.getElementById('login-screen');
+    const nicknameInput = document.getElementById('nickname-input');
+    const joinBtn = document.getElementById('join-btn');
+
+    if (isAdmin) {
+        if (loginScreen) loginScreen.style.display = 'none';
+        startGame("系統管理員", true);
+    } else {
+        nicknameInput.value = `小探險家${Math.floor(Math.random()*900)+100}`;
+        joinBtn.onclick = () => {
+            const nickname = nicknameInput.value.trim() || "無名氏";
+            loginScreen.style.display = 'none';
+            startGame(nickname, false);
+        };
+    }
+}
+
+async function startGame(nickname, isAdmin) {
+    // 1. ✨ 優先載入中央設定檔
+    const settingsData = await fetch('data/settings.json').then(res => res.json());
+    const ORIGIN = [settingsData.origin[1], settingsData.origin[0]]; 
+    const SPAWN = [settingsData.spawn[1], settingsData.spawn[0]];
+    const PORT = settingsData.serverPort || 8888;
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 50, 2000);
+    // ✨ 使用設定檔的迷霧距離
+    scene.fog = new THREE.Fog(0x87ceeb, 50, settingsData.fogDistance || 5000); 
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1.0, 3000);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1.0, 10000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -21,54 +50,113 @@ async function init() {
     const env = new Environment(scene);
     const physics = new Physics();
 
-    console.log("🚀 Loading Massive World (15k+ Roads)...");
-    
+    if (isAdmin) hud.updateRoadName("管理員模式");
+
     const [roadsData, buildingsData, landmarksData] = await Promise.all([
         loader.loadRoads('data/roads.json'),
         loader.loadBuildings('data/buildings.json'),
         loader.loadLandmarks('data/landmarks.json')
     ]);
 
-    // 這裡會執行空間索引優化
     physics.processRoads(roadsData);
     env.createRoads(roadsData);
     env.createBuildings(buildingsData);
     
-    const targetLonLat = [120.974073, 24.817853];
-    const ORIGIN = [120.971, 24.801];
     const latRad = ORIGIN[1] * Math.PI / 180;
-    const spawnX = (targetLonLat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
-    const spawnZ = -(targetLonLat[1] - ORIGIN[1]) * 111111; 
+    const spawnX = (SPAWN[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
+    const spawnZ = -(SPAWN[1] - ORIGIN[1]) * 111111; 
 
-    env.generateRandomTrees(physics, 1500, spawnX, spawnZ);
+    // ✨ 使用設定檔的樹木數量
+    env.generateRandomTrees(physics, settingsData.treeCount || 1500, spawnX, spawnZ);
 
     landmarksData.forEach(data => {
-        const x = (data.lonlat[0] - ORIGIN[0]) * 111111 * Math.cos(latRad);
-        const z = -(data.lonlat[1] - ORIGIN[1]) * 111111;
+        const x = (data.latlon[1] - ORIGIN[0]) * 111111 * Math.cos(latRad);
+        const z = -(data.latlon[0] - ORIGIN[1]) * 111111;
         createFixedLandmark(scene, data.name, x, z, data.height || 5, data.rotation || 0, data.color || "#ffc800");
     });
 
     const player = new Player(scene, camera, renderer.domElement, physics, hud);
     player.mesh.position.set(spawnX, 0, spawnZ);
+    player.spawnX = spawnX; player.spawnZ = spawnZ;
 
-    // --- 使用 performance.now() 代替 Clock 以避免過時警告 ---
+    if (isAdmin) {
+        player.mesh.visible = false;
+        player.walkSpeed = 0;
+        const adminPanel = document.getElementById('admin-panel');
+        if (adminPanel) {
+            adminPanel.style.display = 'flex';
+            const stopProp = (e) => e.stopPropagation();
+            adminPanel.addEventListener('wheel', stopProp);
+            adminPanel.addEventListener('pointerdown', stopProp);
+            adminPanel.addEventListener('touchstart', stopProp);
+            adminPanel.addEventListener('touchmove', stopProp);
+        }
+        const toggleBtn = document.getElementById('admin-toggle-btn');
+        const content = document.getElementById('admin-content');
+        if (toggleBtn && content) {
+            toggleBtn.onclick = () => {
+                const isHidden = content.style.display === 'none';
+                content.style.display = isHidden ? 'block' : 'none';
+                toggleBtn.innerText = isHidden ? '收合' : '展開';
+            };
+        }
+        camera.position.set(spawnX, 1000, spawnZ + 600);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 20;
+        controls.maxDistance = 5000;
+        controls.minPolarAngle = 0.1;
+        controls.maxPolarAngle = Math.PI / 2.1; 
+        controls.target.set(spawnX, 0, spawnZ);
+        controls.addEventListener('change', () => {
+            if (controls.target.y !== 0) controls.target.y = 0;
+            if (camera.position.y < 2) camera.position.y = 2;
+        });
+        window.adminControls = controls;
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'n') {
+                const relativePos = new THREE.Vector3().subVectors(camera.position, controls.target);
+                const height = relativePos.y;
+                const horizontalDist = Math.sqrt(relativePos.x ** 2 + relativePos.z ** 2);
+                camera.position.set(controls.target.x, controls.target.y + height, controls.target.z + horizontalDist);
+                controls.update();
+            }
+        });
+    }
+
+    // ✨ 傳入動態 Port
+    const multiplayer = new MultiplayerManager(scene, player, nickname, isAdmin, { x: spawnX, y: 0, z: spawnZ }, PORT);
+
     let lastTime = performance.now();
     function animate() {
         requestAnimationFrame(animate);
         const now = performance.now();
         const delta = (now - lastTime) / 1000;
         lastTime = now;
-
-        player.update(delta);
+        if (isAdmin) {
+            window.adminControls.update(); 
+            const compass = document.getElementById('compass-pivot');
+            if (compass) {
+                const dir = new THREE.Vector3();
+                camera.getWorldDirection(dir);
+                const angle = Math.atan2(dir.x, dir.z) + Math.PI;
+                compass.style.transform = `rotate(${THREE.MathUtils.radToDeg(angle)}deg)`;
+            }
+        } else {
+            player.update(delta);
+        }
+        multiplayer.update();
         renderer.render(scene, camera);
     }
-
     window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        setTimeout(() => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, 100);
     });
-
     animate();
 }
 

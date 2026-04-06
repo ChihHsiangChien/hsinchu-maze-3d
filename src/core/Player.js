@@ -11,8 +11,8 @@ export class Player {
         this.walkSpeed = 55.0; 
         this.keys = { forward: false, backward: false, left: false, right: false };
 
-        this.camDistance = 18.0; 
-        this.fixedPitch = 0.6;  
+        this.camDistance = 25.0; 
+        this.fixedPitch = 0.55;  
         this.lastX = 0;
 
         this.createPlayerMesh();
@@ -22,15 +22,55 @@ export class Player {
 
     createPlayerMesh() {
         this.mesh = new THREE.Group();
-        const body = new THREE.Mesh(
-            new THREE.CapsuleGeometry(0.4, 0.8, 4, 8),
-            new THREE.MeshPhongMaterial({ color: 0x00ffff, emissive: 0x003333 })
+        this.bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xfff000, emissive: 0x222200 });
+        
+        // 1. 頭部
+        const head = new THREE.Mesh(
+            new THREE.SphereGeometry(0.7, 16, 12),
+            this.bodyMaterial
         );
-        body.position.y = 0.85; 
-        this.mesh.add(body);
-        const visor = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
-        visor.position.set(0, 1.45, -0.4); 
-        this.mesh.add(visor);
+        head.position.y = 0.7;
+        this.mesh.add(head);
+
+        // 2. ✨ 修復版大眼睛 (眼白 + 突出黑珠)
+        const whiteEyeGeo = new THREE.SphereGeometry(0.18, 8, 8);
+        const whiteEyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const blackEyeGeo = new THREE.SphereGeometry(0.1, 8, 8); // 黑珠稍微大一點
+        const blackEyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+        // 左眼組
+        const leftEyeGroup = new THREE.Group();
+        const leftWhite = new THREE.Mesh(whiteEyeGeo, whiteEyeMat);
+        const leftBlack = new THREE.Mesh(blackEyeGeo, blackEyeMat);
+        leftBlack.position.z = -0.12; // ✨ 確保黑珠在眼白前面 (負 Z 是前方)
+        leftEyeGroup.add(leftWhite);
+        leftEyeGroup.add(leftBlack);
+        leftEyeGroup.position.set(-0.38, 0.8, -0.5); // ✨ 眼距更開，且更深入頭部
+        leftEyeGroup.rotation.y = -0.4; 
+        this.mesh.add(leftEyeGroup);
+
+        // 右眼組
+        const rightEyeGroup = new THREE.Group();
+        const rightWhite = new THREE.Mesh(whiteEyeGeo, whiteEyeMat);
+        const rightBlack = new THREE.Mesh(blackEyeGeo, blackEyeMat);
+        rightBlack.position.z = -0.12; // ✨ 確保黑珠在眼白前面
+        rightEyeGroup.add(rightWhite);
+        rightEyeGroup.add(rightBlack);
+        rightEyeGroup.position.set(0.38, 0.8, -0.5); // ✨ 眼距更開
+        rightEyeGroup.rotation.y = 0.4;
+        this.mesh.add(rightEyeGroup);
+
+        // 3. 耳朵
+        const earGeo = new THREE.ConeGeometry(0.3, 0.7, 6);
+        const leftEar = new THREE.Mesh(earGeo, this.bodyMaterial);
+        leftEar.position.set(-0.4, 1.2, 0);
+        leftEar.rotation.z = 0.4;
+        this.mesh.add(leftEar);
+        const rightEar = new THREE.Mesh(earGeo, this.bodyMaterial);
+        rightEar.position.set(0.4, 1.2, 0);
+        rightEar.rotation.z = -0.4;
+        this.mesh.add(rightEar);
+
         this.scene.add(this.mesh);
     }
 
@@ -104,14 +144,12 @@ export class Player {
     update(delta) {
         if (delta > 0.05) delta = 0.05;
 
-        // 1. 取得合成輸入向量
         const input = new THREE.Vector2(0, 0);
         if (this.keys.forward) input.y -= 1;
         if (this.keys.backward) input.y += 1;
         if (this.keys.left) input.x -= 1;
         if (this.keys.right) input.x += 1;
         
-        // 疊加搖桿
         input.add(this.joystickVector);
         if (input.length() > 1) input.normalize();
 
@@ -124,15 +162,12 @@ export class Player {
             moveVec.addScaledVector(forward, -input.y * this.walkSpeed * delta);
             moveVec.addScaledVector(side, input.x * this.walkSpeed * delta);
 
-            // --- 脫困機制：如果目前就不在路上，允許移動 ---
             const currentRoad = this.physics.getCurrentRoad(oldPos.x, oldPos.z);
             
             if (!currentRoad) {
-                // 如果目前在草地，則使用「安全位移」 (不執行物理阻擋)
                 this.mesh.position.add(moveVec);
                 this.hud.updateRoadName(null);
             } else {
-                // 如果在路面上，執行嚴格的滑動碰撞
                 const nextX = oldPos.x + moveVec.x;
                 const roadX = this.physics.getCurrentRoad(nextX, oldPos.z);
                 if (roadX) {
@@ -149,15 +184,26 @@ export class Player {
             }
         }
 
-        // 相機與指北針
         const compass = document.getElementById('compass-pivot');
-        if (compass) compass.style.transform = `rotate(${THREE.MathUtils.radToDeg(this.mesh.rotation.y)}deg)`;
+        if (compass) {
+            compass.style.transform = `rotate(${THREE.MathUtils.radToDeg(this.mesh.rotation.y)}deg)`;
+        }
+
+        const aspect = window.innerWidth / window.innerHeight;
+        if (aspect < 1) {
+            this.camera.fov = 75 + (1 - aspect) * 20; 
+        } else {
+            this.camera.fov = 70; 
+        }
+        this.camera.updateProjectionMatrix();
 
         const h = Math.sin(this.fixedPitch) * this.camDistance;
         const d = Math.cos(this.fixedPitch) * this.camDistance;
         const offset = new THREE.Vector3(0, h + 2, d).applyQuaternion(this.mesh.quaternion);
         this.camera.position.copy(this.mesh.position).add(offset);
-        this.camera.lookAt(this.mesh.position.x, 1.2, this.mesh.position.z);
+        
+        const targetLookAtHeight = aspect < 1 ? 8.5 + (1 - aspect) * 5 : 7.0;
+        this.camera.lookAt(this.mesh.position.x, targetLookAtHeight, this.mesh.position.z);
         this.camera.up.set(0, 1, 0);
     }
 }

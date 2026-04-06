@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hsinchu Maze - 伺服器控制台</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <style>
+        body { 
+            margin: 0; background: #0a0a0a; color: #00ffcc; 
+            font-family: 'Segoe UI', sans-serif; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+        }
+        .container { text-align: center; border: 2px solid #00ffcc; padding: 40px; border-radius: 30px; background: rgba(0,255,204,0.05); }
+        h1 { font-size: 3em; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 5px; }
+        #qrcode { background: white; padding: 20px; border-radius: 20px; margin: 20px 0; display: inline-block; }
+        .info { font-size: 1.5em; opacity: 0.8; }
+        .ip-box { font-family: monospace; background: #222; color: #ff00ff; padding: 10px 20px; border-radius: 10px; margin-top: 20px; }
+        .stats { margin-top: 30px; font-size: 1.2em; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>新竹 3D 城市迷宮</h1>
+        <p class="info">📱 掃描下方 QR Code 立即加入冒險</p>
+        <div id="qrcode"></div>
+        <div class="ip-box">http://100.90.127.126:5173</div>
+        <div class="stats">伺服器狀態：<span style="color: lime;">運作中</span> | 預計容納：35 人</div>
+    </div>
+
+    <script>
+        const gameUrl = window.location.protocol + "//" + window.location.host;
+        document.querySelector('.ip-box').innerText = gameUrl;
+        QRCode.toCanvas(document.createElement('canvas'), gameUrl, { width: 350, margin: 2 }, function (error, canvas) {
+            if (error) console.error(error);
+            document.getElementById('qrcode').appendChild(canvas);
+        });
+    </script>
+</body>
+</html>
